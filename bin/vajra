@@ -1,0 +1,52 @@
+#!/usr/bin/env ruby
+
+require 'bundler/setup'
+require 'vajra'
+
+# Make sure both object files exist
+
+if ARGV[0].nil? or ARGV[1].nil?
+  puts "ArgumentError\nTry `vajra vj_script.vj objectfile`"
+  exit
+end
+
+unless File.file? ARGV[0]
+  puts "File #{ARGV[0]} doesn't exist!"
+  exit
+end
+
+unless File.file? ARGV[1]
+  puts "File #{ARGV[1]} doesn't exist!"
+  exit
+end
+
+read_data = File.read(ARGV[0])
+
+# Make sure that the DSL file given has all the three methods as needed.
+vajra = Vajra::Dsl.new
+vajra.instance_eval(read_data)
+if vajra.return_data[0] == nil or !vajra.return_data[0].is_a?(String)
+  puts "Please include a parser `parser \"parser_name\"`"
+  exit
+end
+if vajra.return_data[1] == nil or !vajra.return_data[1].is_a?(String)
+  puts "Please include a address `address \"virt_address\"`"
+  exit
+end
+if vajra.return_data[2] == nil or !vajra.return_data[2].is_a?(Integer)
+  puts "Please include a parse_size `parse_size size_in_int`"
+  exit
+end
+
+# Validation Ends
+
+parser = Vajra::Parser.new(vajra.return_data[0], vajra.return_data[1], vajra.return_data[2])
+
+begin
+  output = `objcopy --add-section .vajra=/tmp/vajra --set-section-flags .vajra=readonly #{ARGV[1]}`
+rescue Exception => e
+  puts output
+  puts e.message
+  puts e.backtrace.inspect
+end
+  
